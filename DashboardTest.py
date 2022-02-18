@@ -11,12 +11,6 @@ reframe_df = pd.DataFrame(df.set_index("RegionName").stack()).reset_index()
 reframe_df.columns = ["RegionName", "Date", "ZRent"]
 reframe_df.RegionName = reframe_df.RegionName.str.replace(",", "")
 
-### Multiselect functionality
-### Multiselect functionality
-""""
-NO COMMAS, messes up dropdown for some reason
-""""
-
 app = JupyterDash(__name__)
 del app.config._read_only["requests_pathname_prefix"]
 
