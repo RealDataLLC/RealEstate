@@ -14,6 +14,9 @@ reframe_df.RegionName = reframe_df.RegionName.str.replace(",", "")
 app = JupyterDash(__name__)
 del app.config._read_only["requests_pathname_prefix"]
 
+server = app.server
+
+
 app.layout = html.Div([
     html.Div(children=[
         
