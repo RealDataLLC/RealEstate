@@ -5,12 +5,12 @@ import pandas as pd
 
 
 ### zillow rent data
-df = pd.read_csv("https://files.zillowstatic.com/research/public_csvs/zori/Metro_ZORI_AllHomesPlusMultifamily_SSA.csv?t=1644973146")
-df.drop(columns= ["RegionID", "SizeRank"], inplace=True)
+rent_df = pd.read_csv("https://files.zillowstatic.com/research/public_csvs/zori/Metro_ZORI_AllHomesPlusMultifamily_SSA.csv?t=1644973146")
+rent_df.drop(columns= ["RegionID", "SizeRank"], inplace=True)
 
-reframe_df = pd.DataFrame(df.set_index("RegionName").stack()).reset_index()
-reframe_df.columns = ["RegionName", "Date", "ZRent"]
-reframe_df.RegionName = reframe_df.RegionName.str.replace(",", "")
+reframed_rent_df = pd.DataFrame(rent_df.set_index("RegionName").stack()).reset_index()
+reframed_rent_df.columns = ["RegionName", "Date", "ZRent"]
+reframed_rent_df.RegionName = reframed_rent_df.RegionName.str.replace(",", "")
 
 
 ### Zilllow housing
@@ -38,7 +38,6 @@ reindexed_reframed_df = reindexed_reframed_df[reindexed_reframed_df.Date != "201
 app = JupyterDash(__name__)
 del app.config._read_only["requests_pathname_prefix"]
 server = app.server
-
 
 template = "simple_white"
 style = {'width': '49%', 'display': 'inline-block',"text-align" : "center",}
@@ -94,7 +93,7 @@ app.layout = html.Div([
         ,style=style  
                   ),
 
-    ], style = title_settings)
+    ])
 
 @app.callback(
     Output('Zrent', 'figure'),
@@ -111,17 +110,17 @@ def update_figure(selected_cities):
         selected_cities = ["United States"]
         
     filtered_df = reindexed_reframed_df[reindexed_reframed_df.RegionName.isin(selected_cities)]   
-    fig1 = px.scatter(filtered_df, x="Date", y="ZRent", color="RegionName", hover_name="RegionName")
+    fig1 = px.line(filtered_df, x="Date", y="ZRent", color="RegionName", hover_name="RegionName")
     fig1.update_layout(transition_duration=500, template = template)
 
     
-    fig2 = px.scatter(filtered_df, x="Date", y="rent_pct_change", color="RegionName", hover_name="RegionName")
+    fig2 = px.line(filtered_df, x="Date", y="rent_pct_change", color="RegionName", hover_name="RegionName")
     fig2.update_layout(transition_duration=500, template = template,)
     
-    fig3 = px.scatter(filtered_df, x="Date", y="ZEstimate", color="RegionName", hover_name="RegionName")
+    fig3 = px.line(filtered_df, x="Date", y="ZEstimate", color="RegionName", hover_name="RegionName")
     fig3.update_layout(transition_duration=500, template = template)
     
-    fig4 = px.scatter(filtered_df, x="Date", y="home_value_pct_change", color="RegionName", hover_name="RegionName")
+    fig4 = px.line(filtered_df, x="Date", y="home_value_pct_change", color="RegionName", hover_name="RegionName")
     fig4.update_layout(transition_duration=500, template = template)
     
     return fig1, fig2, fig3, fig4
