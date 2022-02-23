@@ -37,6 +37,8 @@ reindexed_reframed_df = reindexed_reframed_df[reindexed_reframed_df.Date != "201
 ### PLOTTING ###
 app = JupyterDash(__name__)
 del app.config._read_only["requests_pathname_prefix"]
+server = app.server
+
 
 template = "simple_white"
 style = {'width': '49%', 'display': 'inline-block',"text-align" : "center",}
