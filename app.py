@@ -1,6 +1,8 @@
 import plotly.express as px
 from jupyter_dash import JupyterDash
 from dash import Input, Output, dcc, html
+import dash-bootstrap-components as dbc
+
 import pandas as pd
 
 
@@ -35,7 +37,10 @@ reindexed_reframed_df.reset_index(inplace = True)
 reindexed_reframed_df = reindexed_reframed_df[reindexed_reframed_df.Date != "2014-01"]
 
 ### PLOTTING ###
-app = JupyterDash(__name__)
+app = JupyterDash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP],
+            meta_tags=[
+        {"name": "viewport", "content": "width=device-width, initial-scale=1"}
+    ])
 del app.config._read_only["requests_pathname_prefix"]
 server = app.server
 
