@@ -43,7 +43,7 @@ reindexed_reframed_df.reset_index(inplace=True)
 reindexed_reframed_df = reindexed_reframed_df[reindexed_reframed_df.Date != "2014-01"]
 
 # census data
-census_data = pd.read_csv("/data/fully_interpolated_census_data_msa.csv")
+census_data = pd.read_csv("https://github.com/nelsonlin2708968/RealEstate/blob/master/data/fully_interpolated_census_data_msa.csv")
 census_data.rename(columns = {"year" : "Date"}, inplace=True)
 census_data["population_change"] = census_data["population"].pct_change()
 census_data["median_income_change"] = census_data["median_income"].pct_change()
