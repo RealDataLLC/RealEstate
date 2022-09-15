@@ -74,7 +74,7 @@ nbformat==5.4.0
 nest-asyncio==1.5.5
 notebook==6.4.12
 notebook-shim==0.1.0
-numpy==1.23.0
+numpy==1.21.6
 openpyxl==3.0.10
 outcome==1.2.0
 packaging==21.3
@@ -153,7 +153,7 @@ twilio==6.27.1
 typing_extensions==4.0.1
 tzdata==2021.5
 tzlocal==4.1
-ujson==5.1.0
+ujson>=5.4.0
 uritemplate==3.0.1
 urllib3>=1.26.5
 us==2.0.2
