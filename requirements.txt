@@ -13,7 +13,7 @@ backports.zoneinfo==0.2.1
 base58==2.1.1
 bleach==5.0.1
 blinker==1.4
-cachetools==5.2.0
+cachetools==4.2.4
 certifi==2022.6.15
 cffi==1.15.0
 charset-normalizer==2.0.12
