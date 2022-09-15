@@ -123,7 +123,7 @@ shellescape==3.8.1
 simple-chalk==0.1.0
 simplejson==3.16.0
 six==1.15.0
-sklearn==0.0
+sklearn==1.0.2
 smmap==5.0.0
 sniffio==1.2.0
 sortedcontainers==2.4.0
