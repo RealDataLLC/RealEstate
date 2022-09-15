@@ -28,7 +28,6 @@ dash-html-components==2.0.0
 dash-bootstrap-components==1.0.3
 dash-table==5.0.0
 beautifulsoup4==4.10.0
-
 Flask==2.0.2
 Flask-Compress==1.10.1
 fonttools==4.28.3
@@ -39,7 +38,6 @@ gunicorn==20.1.0
 h11==0.12.0
 Brotli==1.0.9
 bs4==0.0.1
-cachetools==4.2.4
 CensusData==1.15
 certifi==2021.10.8
 datarobot==2.27.0
