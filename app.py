@@ -1,4 +1,5 @@
 import plotly.express as px
+import plotly.graph_objects as go
 from jupyter_dash import JupyterDash
 from dash import Input, Output, dcc, html
 import dash_bootstrap_components as dbc
@@ -37,7 +38,9 @@ def graph_layout(id_name, title):
 
 def create_sub_plot(filtered_df, dependent_variable):
     fig = px.line(filtered_df, x="Date", y=dependent_variable, color="RegionName", hover_name="RegionName")
-    fig.update_layout(transition_duration=500, template=template)
+    fig.update_layout(transition_duration=500, template = template)
+    if "change" in dependent_variable:
+        fig.update_layout(yaxis_tickformat=".2%")
     return fig
 
 # ZRent from Zillow
@@ -82,7 +85,19 @@ census_data["population_change"] = census_data["population"].pct_change()
 census_data["median_income_change"] = census_data["median_income"].pct_change()
 
 
+# Merging of population data for the most recent information
+most_recent_month = reindexed_reframed_df["Date"].max()
+most_recent_df = reindexed_reframed_df[reindexed_reframed_df["Date"] == most_recent_month]
+most_recent_df = most_recent_df.merge(census_data[census_data["Date"] == 2019], on = "RegionName", how="inner")
 
+# Narrowing down to 100k+ Populations
+fastest_rent_growth_cities = most_recent_df.sort_values(by = "rent_pct_change", ascending=False)
+large_fastest_rent_growth_cities = fastest_rent_growth_cities[fastest_rent_growth_cities["population"] > 1000000]
+
+# Only where Income & population is increasing
+growing_large_fastest_rent_growth_cities = large_fastest_rent_growth_cities[(large_fastest_rent_growth_cities["population_change"] > 0) 
+                                                                            & (large_fastest_rent_growth_cities["median_income_change"] > 0)]
+default_cities = ["United States"]+ growing_large_fastest_rent_growth_cities["RegionName"].head(3).tolist() + large_fastest_rent_growth_cities["RegionName"].tail(1).tolist()
 
 
 app = JupyterDash(__name__, 

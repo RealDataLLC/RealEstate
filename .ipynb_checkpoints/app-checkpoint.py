@@ -1,54 +1,29 @@
 import plotly.express as px
+import plotly.graph_objects as go
 from jupyter_dash import JupyterDash
 from dash import Input, Output, dcc, html
 import dash_bootstrap_components as dbc
 import pandas as pd
 
-# zillow rent data
-rent_df = pd.read_csv(
-    "https://files.zillowstatic.com/research/public_csvs/zori/Metro_ZORI_AllHomesPlusMultifamily_SSA.csv?t=1644973146")
-rent_df.drop(columns=["RegionID", "SizeRank"], inplace=True)
 
-# restacking frame
-reframed_rent_df = pd.DataFrame(rent_df.set_index("RegionName").stack()).reset_index()
-reframed_rent_df.columns = ["RegionName", "Date", "ZRent"]
-reframed_rent_df.RegionName = reframed_rent_df.RegionName.str.replace(",", "")
+"""
+TODO: 
+1. move helper functions
+2. set time slider
+3. add 2020 census data
 
-# housing from ZRent
-housing_df = pd.read_csv(
-    "https://files.zillowstatic.com/research/public_csvs/zhvi/Metro_zhvi_uc_sfrcondo_tier_0.33_0.67_sm_sa_month.csv?t=1645574925")
-housing_df.drop(columns=["RegionID", "SizeRank", "RegionType", "StateName"], inplace=True)
+"""
+def restack_frame(df, target_variable):
+    # restacking frame for merging
+    
+    df.drop(columns= ["RegionID", "SizeRank", "RegionType", "StateName"], inplace=True)
 
-# restacking frame
-reframed_housing_df = pd.DataFrame(housing_df.set_index("RegionName").stack()).reset_index()
-reframed_housing_df.columns = ["RegionName", "Date", "ZEstimate"]
-reframed_housing_df.RegionName = reframed_housing_df.RegionName.str.replace(",", "")
-reframed_housing_df.Date = reframed_housing_df.Date.str[:-3]
-
-# combining rent and housing
-reframe_df = pd.merge(reframed_rent_df, reframed_housing_df, how="left", left_on=["RegionName", "Date"],
-                      right_on=["RegionName", "Date"])
-reindexed_reframed_df = reframe_df.set_index(["RegionName", "Date"])
-
-# rent buy ratio
-reindexed_reframed_df["rent_buy_ratio"] = reindexed_reframed_df["ZRent"] / reindexed_reframed_df["ZEstimate"]
-
-# adding percentage change
-reindexed_reframed_df["rent_pct_change"] = reindexed_reframed_df["ZRent"].pct_change()
-reindexed_reframed_df["home_value_pct_change"] = reindexed_reframed_df["ZEstimate"].pct_change()
-reindexed_reframed_df["rent_buy_pct_change"] = reindexed_reframed_df["rent_buy_ratio"].pct_change()
-
-# removing wrong months
-reindexed_reframed_df.reset_index(inplace=True)
-reindexed_reframed_df = reindexed_reframed_df[reindexed_reframed_df.Date != "2014-01"]
-
-# census data
-census_data = pd.read_csv("https://raw.githubusercontent.com/nelsonlin2708968/RealEstate/master/data/fully_interpolated_census_data_msa.csv")
-
-census_data.rename(columns = {"year" : "Date"}, inplace=True)
-census_data["population_change"] = census_data["population"].pct_change()
-census_data["median_income_change"] = census_data["median_income"].pct_change()
-
+    reframed_rent_df = pd.DataFrame(df.set_index("RegionName").stack()).reset_index()
+    reframed_rent_df.columns = ["RegionName", "Date", target_variable]
+    reframed_rent_df.RegionName = reframed_rent_df.RegionName.str.replace(",", "")
+    reframed_rent_df.Date = reframed_rent_df.Date.str[:7]
+    
+    return reframed_rent_df
 
 def graph_layout(id_name, title):
     return html.Div(children=[
@@ -63,8 +38,66 @@ def graph_layout(id_name, title):
 
 def create_sub_plot(filtered_df, dependent_variable):
     fig = px.line(filtered_df, x="Date", y=dependent_variable, color="RegionName", hover_name="RegionName")
-    fig.update_layout(transition_duration=500, template=template)
+    fig.update_layout(transition_duration=500, template = template)
+    if "change" in dependent_variable:
+        fig.update_layout(yaxis_tickformat=".2%")
     return fig
+
+# ZRent from Zillow
+rent_df = pd.read_csv("https://files.zillowstatic.com/research/public_csvs/zori/Metro_zori_sm_sa_month.csv?t=1663774133")
+reframed_rent_df = restack_frame(rent_df, "ZRent")
+
+# housing from Zillow
+housing_df = pd.read_csv("https://files.zillowstatic.com/research/public_csvs/zhvi/Metro_zhvi_uc_sfrcondo_tier_0.33_0.67_sm_sa_month.csv?t=1663287638")
+reframed_housing_df = restack_frame(housing_df, "ZEstimate")
+
+# inventory from Zillow
+inventory_df = pd.read_csv("https://files.zillowstatic.com/research/public_csvs/invt_fs/Metro_invt_fs_uc_sfrcondo_sm_month.csv?t=1663287638")
+reframed_inventory_df = restack_frame(inventory_df, "Inventory")
+
+# combining rent and housing
+reframe_df = pd.merge(reframed_rent_df, reframed_housing_df, how = "left", left_on = ["RegionName", "Date"], right_on = ["RegionName", "Date"])
+reframe_df = pd.merge(reframe_df, reframed_inventory_df, how = "left", left_on = ["RegionName", "Date"], right_on = ["RegionName", "Date"])
+
+reindexed_reframed_df = reframe_df.set_index(["RegionName", "Date"])
+
+
+# rent buy ratio
+reindexed_reframed_df["rent_buy_ratio"] = reindexed_reframed_df["ZRent"]/reindexed_reframed_df["ZEstimate"]
+
+# adding percentage change
+reindexed_reframed_df["rent_pct_change"] = reindexed_reframed_df["ZRent"].astype(float).pct_change()
+reindexed_reframed_df["home_value_pct_change"] = reindexed_reframed_df["ZEstimate"].pct_change()
+reindexed_reframed_df["inventory_pct_change"] = reindexed_reframed_df["Inventory"].pct_change()
+
+reindexed_reframed_df["rent_buy_pct_change"] = reindexed_reframed_df["rent_buy_ratio"].pct_change()
+
+# removing wrong months
+reindexed_reframed_df.reset_index(inplace = True)
+reindexed_reframed_df = reindexed_reframed_df[reindexed_reframed_df.Date != "2015-03"]
+
+
+# census data
+census_data = pd.read_csv("https://raw.githubusercontent.com/nelsonlin2708968/RealEstate/master/data/fully_interpolated_census_data_msa.csv")
+
+census_data.rename(columns = {"year" : "Date"}, inplace=True)
+census_data["population_change"] = census_data["population"].pct_change()
+census_data["median_income_change"] = census_data["median_income"].pct_change()
+
+
+# Merging of population data for the most recent information
+most_recent_month = reindexed_reframed_df["Date"].max()
+most_recent_df = reindexed_reframed_df[reindexed_reframed_df["Date"] == most_recent_month]
+most_recent_df = most_recent_df.merge(census_data[census_data["Date"] == 2019], on = "RegionName", how="inner")
+
+# Narrowing down to 100k+ Populations
+fastest_rent_growth_cities = most_recent_df.sort_values(by = "rent_pct_change", ascending=False)
+large_fastest_rent_growth_cities = fastest_rent_growth_cities[fastest_rent_growth_cities["population"] > 1000000]
+
+# Only where Income & population is increasing
+growing_large_fastest_rent_growth_cities = large_fastest_rent_growth_cities[(large_fastest_rent_growth_cities["population_change"] > 0) 
+                                                                            & (large_fastest_rent_growth_cities["median_income_change"] > 0)]
+default_cities = ["United States"]+ growing_large_fastest_rent_growth_cities["RegionName"].head(3).tolist() + large_fastest_rent_growth_cities["RegionName"].tail(1).tolist()
 
 
 app = JupyterDash(__name__, 
@@ -101,13 +134,15 @@ app.layout = html.Div([
     graph_layout('Zrent_buy', 'Graph of ZRent/ZBuy'), 
     graph_layout('Zrent_buy_pct_change', 'Graph of ZRent/ZBuy Change'),
     
+    graph_layout('Inventory', 'Graph of Inventory'), 
+    graph_layout('inventory_pct_change', 'Inventory Rate of Change'),
+    
     graph_layout(id_name = 'median_income', title = 'Incomes (Projected 2020-2022)'), 
     graph_layout(id_name = 'median_income_change', title = 'Income Growth (Projected 2020-2022)'), 
 
     graph_layout(id_name = 'population', title = 'Population (Projected 2020-2022)'),
     graph_layout(id_name = 'population_change', title = 'Population Growth (Projected 2020-2022)'),
     
-    #dash_table.DataTable(df.to_dict('records'),[{"name": i, "id": i} for i in df.columns], id='tbl'),
     
     ])
 
@@ -118,6 +153,8 @@ app.layout = html.Div([
     Output('ZEst_pct_change', 'figure'),
     Output('Zrent_buy', 'figure'),
     Output('Zrent_buy_pct_change', 'figure'),
+    Output('Inventory', 'figure'),
+    Output('inventory_pct_change', 'figure'),
     Output('median_income', 'figure'),
     Output('median_income_change', 'figure'),
     Output('population', 'figure'),
@@ -143,13 +180,16 @@ def update_figure(selected_cities):
     fig5 = create_sub_plot(filtered_df, "rent_buy_ratio")
     fig6 = create_sub_plot(filtered_df, "rent_buy_pct_change")
     
-    fig7 = create_sub_plot(census_filtered_df, "median_income")
-    fig8 = create_sub_plot(census_filtered_df[census_filtered_df["Date"] != 2015], "median_income_change")
+    fig7 = create_sub_plot(filtered_df[(filtered_df["RegionName"] != "United States") & (filtered_df["Date"] > "2018-01")], "Inventory")
+    fig8 = create_sub_plot(filtered_df[filtered_df["Date"] > "2018-01"], "inventory_pct_change")
     
-    fig9 = create_sub_plot(census_filtered_df[census_filtered_df["RegionName"] != "United States"], "population")
-    fig10 = create_sub_plot(census_filtered_df[census_filtered_df["Date"] != 2015], "population_change")
+    fig9 = create_sub_plot(census_filtered_df, "median_income")
+    fig10 = create_sub_plot(census_filtered_df[census_filtered_df["Date"] != 2015], "median_income_change")
     
-    return fig1, fig2, fig3, fig4, fig5, fig6, fig7, fig8, fig9, fig10
+    fig11 = create_sub_plot(census_filtered_df[census_filtered_df["RegionName"] != "United States"], "population")
+    fig12 = create_sub_plot(census_filtered_df[census_filtered_df["Date"] != 2015], "population_change")
+    
+    return fig1, fig2, fig3, fig4, fig5, fig6, fig7, fig8, fig9, fig10, fig11, fig12
     
 if __name__ == '__main__':
     app.run_server(debug=False)
